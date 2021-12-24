@@ -1,0 +1,184 @@
+server:
+  port: 8888
+  servlet:
+    context-path: /soul #给所有Controller添加统一前缀
+mybatis-plus: # 配置mybatis-plus
+  mapper-locations: classpath*:mybatis/**/*.xml # 配置扫描xml
+  # 实体扫描，多个package用逗号或者分号分隔,虽然可以配置这项来进行pojo包扫描，但其实在mapper.xml写全类名更好
+  type-aliases-package: cn.soul.pojo
+  configuration:
+    call-setters-on-nulls: true #解决查询返回结果含null没有对应字段值问题
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl # 配置slq打印日志
+spring:
+  profiles:
+    active: orcl
+  freemarker:
+    suffix: .html
+    charset: utf-8
+  mvc:
+    static-path-pattern: /static/** # 配置静态资源映射路径，/public、/resources路径失效
+  servlet:
+    multipart: # 上传文件大小限制
+      enabled: true
+      max-file-size: 20MB
+      max-request-size: 100MB
+
+logging: #生成日志文件
+  file: # 配置输出额日志文件名,可以带路径：file: out.log
+    path: ./logs # 配置日志存放路径,日志文件名为：spring.log
+    max-size: 50MB # 设置日志文件自动切割大小
+
+params: #配置静态参数
+  heat-ip: 10.1.1.222:8181 #热力内网查看静态资源公共ip
+  ipes-prefix: 88.156.60001 #华大智宝生产商前缀
+  ipes-code: 88.156.60007 #华大智宝企业节点码
+  identity: #标识解析相关参数
+    ip: 223.70.192.136:8081
+    username: bdhg
+    password: bdhgbdhg
+  data-collection: #数采相关ip地址
+    cha-ip: 10.1.5.40:9002 #电信
+    chl-ip: 10.1.5.40:8080 #移动
+
+---
+spring:
+  profiles: local #本地环境-mysql
+  datasource:
+    url: jdbc:mysql://localhost:3306/soul?useUnicode=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Hongkong
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    #以下是数据源其他配置  这是个大坑，阿里druid版本太高（1.1.20+）需要这么配其它配置
+    validationQuery: SELECT 1  #检测数据库链接
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+  redis:
+    host: localhost # Redis服务器地址
+    port: 6379 # Redis服务器连接端口
+    database: 0 # Redis数据库索引（默认为0）
+    password: # Redis服务器连接密码（默认为空）
+    timeout: 5000 # 连接超时时间（毫秒）
+    jedis:
+      pool:
+        max-active: 20 # 连接池最大连接数（使用负值表示没有限制）
+        max-wait: -1 # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-idle: 8 # 连接池中的最大空闲连接
+        min-idle: 0 # 连接池中的最小空闲连接
+
+---
+spring:
+  profiles: dev #开发环境
+  datasource:
+    url: jdbc:mysql://lb.ipes.com:3306/ipes2?useUnicode=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Hongkong
+    username: ipes
+    password: Fuaaabd_5420w
+    driver-class-name: org.mariadb.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+    validationQuery: SELECT 1
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+  redis:
+    database: 0
+    host: lb.ipes.com
+    port: 6379
+    password:
+    timeout: 1000
+    jedis:
+      pool:
+        max-active: 20
+        max-wait: -1
+        max-idle: 10
+        min-idle: 0
+---
+spring:
+  profiles: orcl #生产环境 oracle
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/ORCL
+    username: soul
+    password: 123456
+    platform: oracle
+    driver-class-name: oracle.jdbc.OracleDriver
+  redis:
+    host: localhost
+    port: 6379
+    database: 0
+    password:
+    timeout: 1000
+    jedis:
+      pool:
+        max-active: 20
+        max-wait: -1
+        max-idle: 10
+        min-idle: 0
+---
+spring:
+  profiles: test #测试环境
+  datasource: #mp多数据源，需要在实现层加上@DS("ipes")；不加默认是@DS("master")数据源
+    dynamic:
+      primary: master #设置默认的数据源或者数据源组,默认值即为master
+      strict: false #设置严格模式,默认false不启动. 启动后在未匹配到指定数据源时候回抛出异常,不启动会使用默认数据源.
+      datasource:
+        master:
+          url: jdbc:mysql://lb.ipes.com:3306/ipes2?useUnicode=true&useAffectedRows=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Shanghai
+          username: ipes
+          password: Fuaaabd_5420w
+          driver-class-name: org.mariadb.jdbc.Driver
+          type: com.alibaba.druid.pool.DruidDataSource
+          druid:
+            validation-query: SELECT 1
+        ipes:
+          url: jdbc:mysql://lb.ipes.com:3306/ipes?useUnicode=true&characterEncoding=UTF-8&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=Asia/Shanghai
+          username: ipes
+          password: Fuaaabd_5420w
+          driver-class-name: org.mariadb.jdbc.Driver
+          type: com.alibaba.druid.pool.DruidDataSource
+          druid:
+            validation-query: SELECT 1
+  kafka:
+    bootstrap-servers: lb.ipes.com:30672
+    producer:
+      retries: 0 # 发生错误后，消息重发的次数。
+      #当有多个消息需要被发送到同一个分区时，生产者会把它们放在同一个批次里。该参数指定了一个批次可以使用的内存大小，按照字节数计算。
+      batch-size: 16384
+      buffer-memory: 33554432 # 设置生产者内存缓冲区的大小。
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer # 键的序列化方式
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer # 值的序列化方式
+      # acks=0 ： 生产者在成功写入消息之前不会等待任何来自服务器的响应。
+      # acks=1 ： 只要集群的首领节点收到消息，生产者就会收到一个来自服务器成功响应。
+      # acks=all ：只有当所有参与复制的节点全部收到消息时，生产者才会收到一个来自服务器的成功响应。
+      acks: 1
+    consumer:
+      group-id: ipes # 指定默认消费者group id --> 由于在kafka中，同一组中的consumer不会读取到同一个消息，依靠groud.id设置组名
+      # 自动提交的时间间隔 在spring boot 2.X 版本中这里采用的是值的类型为Duration 需要符合特定的格式，如1S,1M,2H,5D
+      auto-commit-interval: 1S
+      # 该属性指定了消费者在读取一个没有偏移量的分区或者偏移量无效的情况下该作何处理：
+      # latest（默认值）在偏移量无效的情况下，消费者将从最新的记录开始读取数据（在消费者启动之后生成的记录）
+      # earliest ：在偏移量无效的情况下，消费者将从起始位置读取分区的记录
+      auto-offset-reset: earliest
+      # enable.auto.commit:true --> 设置自动提交offset
+      # enable-auto-commit: true
+      # 是否自动提交偏移量，默认值是true,为了避免出现重复数据和数据丢失，可以把它设置为false,然后手动提交偏移量
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer # 键的反序列化方式
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer # 值的反序列化方式
+      #listener:
+      # 在侦听器容器中运行的线程数。
+      #concurrency: 5
+      #listner负责ack，每调用一次，就立即commit
+      #ack-mode: manual_immediate
+      #missing-topics-fatal: false
+  redis:
+    database: 0 # Redis数据库索引（默认为0）
+    host: lb.ipes.com # Redis服务器地址
+    port: 6379 # Redis服务器连接端口
+    password: # Redis服务器连接密码（默认为空）
+    timeout: 1000 # 连接超时时间（毫秒）
+    jedis:
+      pool:
+        max-active: 20 # 连接池最大连接数（使用负值表示没有限制）
+        max-wait: -1 # 连接池最大阻塞等待时间（使用负值表示没有限制）
+        max-idle: 10 # 连接池中的最大空闲连接
+        min-idle: 0 # 连接池中的最小空闲连接
